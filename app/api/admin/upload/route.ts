@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
 import { isAdmin } from "@/lib/site-store";
+import { hasSupabaseConfig, uploadImageToSupabase } from "@/lib/supabase-store";
 
 export async function POST(request: Request) {
   if (!(await isAdmin())) {
@@ -12,6 +13,11 @@ export async function POST(request: Request) {
   const file = form.get("file");
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "Missing file" }, { status: 400 });
+  }
+
+  if (hasSupabaseConfig) {
+    const url = await uploadImageToSupabase(file);
+    return NextResponse.json({ url });
   }
 
   const ext = path.extname(file.name) || ".jpg";

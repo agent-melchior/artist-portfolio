@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { promises as fs } from "fs";
 import path from "path";
+import { getSiteDataFromSupabase, hasSupabaseConfig, saveSiteDataToSupabase } from "./supabase-store";
 
 export type MenuItem = {
   id: string;
@@ -31,6 +32,11 @@ export type SiteData = {
 const dataPath = path.join(process.cwd(), "data", "site.json");
 
 export async function getSiteData(): Promise<SiteData> {
+  if (hasSupabaseConfig) {
+    const data = await getSiteDataFromSupabase();
+    if (data.menu.length || data.works.length || Object.keys(data.pages).length) return data;
+  }
+
   const file = await fs.readFile(dataPath, "utf8");
   const data = JSON.parse(file) as SiteData;
   return {
@@ -41,6 +47,11 @@ export async function getSiteData(): Promise<SiteData> {
 }
 
 export async function saveSiteData(data: SiteData) {
+  if (hasSupabaseConfig) {
+    await saveSiteDataToSupabase(data);
+    return;
+  }
+
   await fs.mkdir(path.dirname(dataPath), { recursive: true });
   await fs.writeFile(dataPath, JSON.stringify(data, null, 2) + "\n", "utf8");
 }
