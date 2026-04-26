@@ -1,0 +1,51 @@
+{
+  "siteTitle": "Artist Portfolio",
+  "menu": [
+    { "id": "contact", "label": "Contact", "slug": "contact", "type": "page", "sort": 0 },
+    { "id": "prototypes", "label": "Prototypes", "slug": "prototypes", "type": "category", "sort": 1 },
+    { "id": "timelapse", "label": "Timelapse", "slug": "timelapse", "type": "category", "sort": 2 },
+    { "id": "cv", "label": "CV", "slug": "cv", "type": "page", "sort": 3 }
+  ],
+  "pages": {
+    "contact": {
+      "title": "Contact",
+      "body": "For enquiries, exhibitions, and commissions:\n\nemail@example.com"
+    },
+    "cv": {
+      "title": "CV",
+      "body": "Selected exhibitions, education, residencies, and publications can be edited from the admin."
+    }
+  },
+  "works": [
+    {
+      "id": "prototype-01",
+      "category": "prototypes",
+      "title": "Prototype I",
+      "year": "2026",
+      "material": "Mixed media",
+      "description": "A quiet study in material, surface, and repetition.",
+      "image": "https://images.unsplash.com/photo-1547891654-e66ed7ebb968?q=80&w=1600&auto=format&fit=crop",
+      "sort": 0
+    },
+    {
+      "id": "prototype-02",
+      "category": "prototypes",
+      "title": "Prototype II",
+      "year": "2026",
+      "material": "Paper, pigment",
+      "description": "A restrained prototype exploring sequence and trace.",
+      "image": "https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?q=80&w=1600&auto=format&fit=crop",
+      "sort": 1
+    },
+    {
+      "id": "timelapse-01",
+      "category": "timelapse",
+      "title": "Timelapse Study",
+      "year": "2025",
+      "material": "Video still, installation documentation",
+      "description": "A temporal fragment presented as a still image.",
+      "image": "https://images.unsplash.com/photo-1547826039-bfc35e0f1ea8?q=80&w=1600&auto=format&fit=crop",
+      "sort": 0
+    }
+  ]
+}
