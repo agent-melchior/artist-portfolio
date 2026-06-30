@@ -59,7 +59,7 @@ on conflict (slug) do nothing;
 -- Storage bucket for portfolio images.
 insert into storage.buckets (id, name, public)
 values ('portfolio-images', 'portfolio-images', true)
-on conflict (id) do nothing;
+on conflict (id) do update set public = true;
 
 -- Public read policy for images in this bucket. Uploads are handled server-side with the service role key.
 do $$

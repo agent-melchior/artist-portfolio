@@ -42,6 +42,85 @@ function move<T>(items: T[], index: number, direction: -1 | 1) {
   return next;
 }
 
+// Keep uploads well under the server's 8MB limit while preserving high resolution.
+const UPLOAD_MAX_BYTES = 8 * 1024 * 1024;
+const RESIZE_TARGET_BYTES = 7 * 1024 * 1024;
+const RESIZE_MAX_DIMENSION = 2560;
+const RESIZABLE_TYPES = /^image\/(jpeg|png|webp|avif)$/;
+
+function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality: number) {
+  return new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, quality));
+}
+
+function pickEncodableType(): "image/webp" | "image/jpeg" {
+  const probe = document.createElement("canvas");
+  probe.width = 1;
+  probe.height = 1;
+  return probe.toDataURL("image/webp").startsWith("data:image/webp") ? "image/webp" : "image/jpeg";
+}
+
+// Downscale + recompress large images in the browser so they fit the upload
+// limit. Returns the original file untouched when it's already small enough or
+// can't be safely re-encoded (e.g. animated GIFs).
+async function prepareImageForUpload(file: File): Promise<File> {
+  if (typeof document === "undefined" || typeof createImageBitmap !== "function") return file;
+  if (!RESIZABLE_TYPES.test(file.type)) return file;
+
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(file);
+  } catch {
+    return file;
+  }
+
+  const { width, height } = bitmap;
+  const fitScale = Math.min(1, RESIZE_MAX_DIMENSION / Math.max(width, height));
+  const needsResize = fitScale < 1;
+  const needsRecompress = file.size > RESIZE_TARGET_BYTES;
+  if (!needsResize && !needsRecompress) {
+    bitmap.close();
+    return file;
+  }
+
+  const outputType = pickEncodableType();
+  let scale = fitScale;
+  let quality = 0.92;
+  let best: Blob | null = null;
+
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const targetWidth = Math.max(1, Math.round(width * scale));
+    const targetHeight = Math.max(1, Math.round(height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+    const context = canvas.getContext("2d");
+    if (!context) break;
+    if (outputType === "image/jpeg") {
+      context.fillStyle = "#ffffff";
+      context.fillRect(0, 0, targetWidth, targetHeight);
+    }
+    context.drawImage(bitmap, 0, 0, targetWidth, targetHeight);
+
+    const blob = await canvasToBlob(canvas, outputType, quality);
+    if (!blob) break;
+    best = blob;
+    if (blob.size <= RESIZE_TARGET_BYTES) break;
+
+    if (quality > 0.55) {
+      quality -= 0.12;
+    } else {
+      scale *= 0.82;
+    }
+  }
+
+  bitmap.close();
+  if (!best) return file;
+
+  const extension = outputType === "image/webp" ? "webp" : "jpg";
+  const baseName = file.name.replace(/\.[^.]+$/, "") || "image";
+  return new File([best], `${baseName}.${extension}`, { type: outputType });
+}
+
 function Thumbnail({ work }: { work: Pick<Work, "image" | "title"> }) {
   return (
     <div className="adminThumb">
@@ -210,20 +289,13 @@ export default function AdminClient({ initialData }: { initialData: SiteData }) 
   }
 
   async function uploadFile(file: File) {
-    if (file.size > 8 * 1024 * 1024) {
-      throw new Error("File is too large. Max size is 8MB.");
-    }
-    if (typeof createImageBitmap === "function") {
-      const bitmap = await createImageBitmap(file);
-      const isOversized = bitmap.width > 8000 || bitmap.height > 8000;
-      bitmap.close();
-      if (isOversized) {
-        throw new Error("Image dimensions are too large.");
-      }
+    const prepared = await prepareImageForUpload(file);
+    if (prepared.size > UPLOAD_MAX_BYTES) {
+      throw new Error("Image is too large even after resizing. Try a smaller file.");
     }
 
     const body = new FormData();
-    body.append("file", file);
+    body.append("file", prepared);
     const response = await fetch("/api/admin/upload", { method: "POST", body });
     const result = await response.json();
     if (!response.ok) {
