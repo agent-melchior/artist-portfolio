@@ -247,9 +247,12 @@ export default function AdminClient({ initialData }: { initialData: SiteData }) 
         throw new Error(typeof result?.error === "string" ? result.error : "Save failed.");
       }
 
-      const persisted = normalizeData((result?.data as SiteData | undefined) ?? { ...payload, revision: payload.revision + 1 });
-      setData(persisted);
-      setSavedSnapshot(serializeData(persisted));
+      const savedRevision = typeof result?.revision === "number" ? result.revision : payload.revision + 1;
+      // Only advance the revision; never overwrite the live form fields with the
+      // server response. Doing so would revert edits typed while the save was in
+      // flight and bounce the caret to the end of the focused field.
+      setData((current) => ({ ...current, revision: savedRevision }));
+      setSavedSnapshot(serializeData({ ...payload, revision: savedRevision }));
       setHasConflict(false);
       setSavingMessage(options?.autosave ? "Autosaved." : "Changes saved.");
       return true;
