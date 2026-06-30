@@ -5,7 +5,7 @@ import GalleryMotion from "./GalleryMotion";
 export function Menu({ items }: { items: MenuItem[] }) {
   return (
     <nav className="menu" aria-label="Main navigation">
-      <Link className="brand" href="/">Index</Link>
+      <Link className="brand" href="/">Roos van Unen</Link>
       <div className="menuItems">
         {items.map((item) => (
           <Link key={item.id} href={`/${item.slug}`}>{item.label}</Link>

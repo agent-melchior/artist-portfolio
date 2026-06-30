@@ -27,6 +27,7 @@ create table if not exists works (
   material text not null default '',
   description text not null default '',
   image text not null default '',
+  hidden boolean not null default false,
   sort_order integer not null default 0
 );
 
@@ -35,6 +36,10 @@ create index if not exists works_category_sort_order_idx on works(category, sort
 
 insert into site_settings(key, value)
 values ('siteTitle', 'Artist Portfolio')
+on conflict (key) do nothing;
+
+insert into site_settings(key, value)
+values ('dataRevision', '0')
 on conflict (key) do nothing;
 
 insert into menu_items(id, label, slug, type, sort_order)

@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { Gallery, Menu, TextPage } from "../components";
 import { getSiteData } from "@/lib/site-store";
 
+export const dynamic = "force-dynamic";
+
 export default async function SlugPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const data = await getSiteData();
@@ -22,7 +24,7 @@ export default async function SlugPage({ params }: { params: Promise<{ slug: str
   return (
     <>
       <Menu items={data.menu} />
-      <Gallery works={data.works.filter((work) => work.category === slug)} />
+      <Gallery works={data.works.filter((work) => work.category === slug && !work.hidden)} />
     </>
   );
 }

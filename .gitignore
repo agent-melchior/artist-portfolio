@@ -1,6 +1,11 @@
 .next
 node_modules
+.env
+.env.*
+!.env.example
 .env.local
 .DS_Store
+tsconfig.tsbuildinfo
 public/uploads/*
 !public/uploads/.gitkeep
+.vercel

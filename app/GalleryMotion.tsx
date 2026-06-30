@@ -7,10 +7,22 @@ export default function GalleryMotion() {
     const shell = document.querySelector<HTMLElement>(".galleryShell");
     if (!shell) return;
 
+    const normalizeWheelDelta = (event: WheelEvent) => {
+      const unit = event.deltaMode === WheelEvent.DOM_DELTA_LINE
+        ? 32
+        : event.deltaMode === WheelEvent.DOM_DELTA_PAGE
+          ? window.innerHeight
+          : 1;
+      const delta = event.deltaY * unit * 2.8;
+      const maxStep = window.innerWidth * 0.9;
+
+      return Math.max(-maxStep, Math.min(maxStep, delta));
+    };
+
     const onWheel = (event: WheelEvent) => {
       if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
       event.preventDefault();
-      shell.scrollBy({ left: event.deltaY, behavior: "smooth" });
+      shell.scrollBy({ left: normalizeWheelDelta(event), behavior: "smooth" });
     };
 
     shell.addEventListener("wheel", onWheel, { passive: false });

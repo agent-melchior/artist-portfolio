@@ -1,7 +1,12 @@
 import { cookies } from "next/headers";
 import { promises as fs } from "fs";
 import path from "path";
-import { getSiteDataFromSupabase, hasSupabaseConfig, saveSiteDataToSupabase } from "./supabase-store";
+import { ADMIN_COOKIE_NAME, verifyAdminSessionToken } from "./admin-auth";
+import {
+  getSiteDataFromSupabase,
+  hasSupabaseConfig,
+  saveSiteDataToSupabase,
+} from "./supabase-store";
 
 export type MenuItem = {
   id: string;
@@ -19,10 +24,12 @@ export type Work = {
   material: string;
   description: string;
   image: string;
+  hidden?: boolean;
   sort: number;
 };
 
 export type SiteData = {
+  revision: number;
   siteTitle: string;
   menu: MenuItem[];
   pages: Record<string, { title: string; body: string }>;
@@ -31,19 +38,26 @@ export type SiteData = {
 
 const dataPath = path.join(process.cwd(), "data", "site.json");
 
-export async function getSiteData(): Promise<SiteData> {
-  if (hasSupabaseConfig) {
-    const data = await getSiteDataFromSupabase();
-    if (data.menu.length || data.works.length || Object.keys(data.pages).length) return data;
-  }
-
+async function readLocalSiteData(): Promise<SiteData> {
   const file = await fs.readFile(dataPath, "utf8");
   const data = JSON.parse(file) as SiteData;
   return {
     ...data,
+    revision: Number.isFinite(data.revision) ? data.revision : 0,
     menu: [...data.menu].sort((a, b) => a.sort - b.sort),
     works: [...data.works].sort((a, b) => a.sort - b.sort),
   };
+}
+
+export async function getSiteData(): Promise<SiteData> {
+  // When Supabase is configured it is the single source of truth. We never fall
+  // back to the local data/site.json so the frontend only ever shows content
+  // that lives in the online database.
+  if (hasSupabaseConfig) {
+    return getSiteDataFromSupabase();
+  }
+
+  return readLocalSiteData();
 }
 
 export async function saveSiteData(data: SiteData) {
@@ -66,7 +80,8 @@ export function slugify(value: string) {
 
 export async function isAdmin() {
   const cookieStore = await cookies();
-  return cookieStore.get("portfolio_admin")?.value === "yes";
+  const token = cookieStore.get(ADMIN_COOKIE_NAME)?.value;
+  return token ? verifyAdminSessionToken(token) : false;
 }
 
 export async function requireAdmin() {
